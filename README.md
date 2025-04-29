@@ -7,6 +7,7 @@ A hobby operating system written in C.
 - [x] VGA driver to print to screen
 - [x] Keyboard driver
 - [x] Physical Memory Manager (PMM)
+- [x] Virtual Memory Manager (VMM) for paging
 
 ## Building and Running
 ### Prerequisites
