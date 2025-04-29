@@ -10,6 +10,13 @@ uint8_t inportb (unsigned short _port)
     return rv;
 }
 
+uint16_t inportw (uint16_t _port)
+{
+    uint16_t rv;
+    __asm__ __volatile__ ("inw %1, %0" : "=a" (rv) : "dN" (_port));
+    return rv;
+}
+
 /* We will use this to write to I/O ports to send bytes to devices. This
 *  will be used in the next tutorial for changing the textmode cursor
 *  position. Again, we use some inline assembly for the stuff that simply
@@ -17,25 +24,6 @@ uint8_t inportb (unsigned short _port)
 void outportb (unsigned short _port, unsigned char _data)
 {
     __asm__ __volatile__ ("outb %1, %0" : : "dN" (_port), "a" (_data));
-}
-
-void *memcpy(void *dest, const void *src, size_t count) {
-    const char *sp = (const char *)src;
-    char *dp = (char *)dest;
-    for(; count != 0; count--) *dp++ = *sp++;
-    return dest;
-}
-
-void *memset(void *dest, char val, size_t count) {
-    char *temp = (char *)dest;
-    for( ; count != 0; count--) *temp++ = val;
-    return dest;
-}
-
-unsigned short *memsetw(unsigned short *dest, unsigned short val, size_t count) {
-    unsigned short *temp = (unsigned short *)dest;
-    for( ; count != 0; count--) *temp++ = val;
-    return dest;
 }
 
 /*

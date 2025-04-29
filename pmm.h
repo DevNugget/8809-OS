@@ -8,9 +8,9 @@
 #include "multiboot.h"
 
 static void pmm_panic(const char* msg);
-static void pmm_memset(void* ptr, uint8_t val, size_t size);
+void pmm_memset(void* ptr, uint8_t val, size_t size);
 
-void pmm_init(uint32_t mem_size, uint32_t* mmap_addr, uint32_t mmap_length, multiboot_info_t* mbd);
+void pmm_init(multiboot_info_t* mbd, unsigned int magic);
 
 uint32_t pmm_alloc_frame();
 void pmm_free_frame(uint32_t frame_addr);

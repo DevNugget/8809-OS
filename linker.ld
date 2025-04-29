@@ -54,6 +54,15 @@ SECTIONS
 	}
 	__kernel_end = .;  /* Marks end of kernel */
 
+	__module_space_start = .;
+	.module_space : {
+	    . = ALIGN(4096);
+	    __module_space_start = .;
+	    . += 1M;
+	    __module_space_end = .;
+	}
+	__module_space_end = .;
+
 	/* The compiler may produce other sections, by default it will put them in
 	   a segment with the same name. Simply add stuff here as needed. */
 }

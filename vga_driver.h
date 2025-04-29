@@ -48,5 +48,6 @@ void terminal_movecsr(size_t x, size_t y);
 char nibble_to_hex(uint8_t nibble);
 void terminal_hexprint(uint32_t value);
 void terminal_decprint(uint32_t num);
+void terminal_scroll(void);
 
 #endif

@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include "gdt.h"
 #include "vga_driver.h"
+#include "tss.h"
 
 extern void gdt_load();
 
@@ -21,7 +22,7 @@ struct gdt_ptr {
 } __attribute__((packed));
 
 // Define the GDT (3 entries: NULL, Code, Data)
-struct gdt_entry gdt[3];
+struct gdt_entry gdt[6];
 struct gdt_ptr gdt_ptr;
 
 // Set a GDT entry
@@ -49,6 +50,14 @@ void gdt_init() {
 
     // Kernel Data Segment (Ring 0)
     gdt_set_entry(2, 0, 0xFFFFFFFF, 0x92, 0xCF);
+
+    // User Code Segment (Ring 3)
+    gdt_set_entry(3, 0, 0xFFFFFFFF, 0xFA, 0xCF);
+
+    // User Data Segment (Ring 3)
+    gdt_set_entry(4, 0, 0xFFFFFFFF, 0xF2, 0xCF);
+
+    gdt_set_entry(5, (uint32_t)&tss, sizeof(tss), 0xE9, 0x00);
 
     // Load the GDT (requires assembly)
     gdt_load();

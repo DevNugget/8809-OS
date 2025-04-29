@@ -4,6 +4,7 @@
 #include "pmm.h"
 #include "vga_driver.h"
 #include "multiboot.h"
+#include "string.h"
 
 static uint32_t* frame_bitmap;
 static uint32_t total_frames;
@@ -37,12 +38,25 @@ static void pmm_panic(const char* msg) {
     while (1) {}  // Halt forever
 }
 
-static void pmm_memset(void* ptr, uint8_t val, size_t size) {
+void pmm_memset(void* ptr, uint8_t val, size_t size) {
     uint8_t* p = ptr;
     while (size--) *p++ = val;
 }
 
-void pmm_init(multiboot_info_t* mbd) {
+void pmm_init(multiboot_info_t* mbd, unsigned int magic) {
+	if(magic != MULTIBOOT_BOOTLOADER_MAGIC) {
+        terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK));
+        terminal_writestring("Invalid magic number!");
+        while(1) {}
+    }
+
+    /* Check bit 6 to see if we have a valid memory map */
+    if(!(mbd->flags >> 6 & 0x1)) {
+        terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK));
+        terminal_writestring("Invalid memory map given by GRUB bootloader");
+        while(1) {}
+    }
+
 	uint32_t mem_size = (mbd->mem_lower + mbd->mem_upper) * 1024;
 	terminal_writestring("Initializing PMM with memory size: ");
     terminal_hexprint(mem_size);

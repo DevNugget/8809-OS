@@ -2,13 +2,7 @@
 #include <stdint.h>
 #include "vga_driver.h"
 #include "util.h"
-
-size_t strlen(const char* str) {
-	size_t len = 0;
-	while (str[len])
-		len++;
-	return len;
-}
+#include "string.h"
 
 size_t terminal_row;
 size_t terminal_column;
@@ -76,11 +70,7 @@ void terminal_putchar(char c) {
         terminal_row++;
 	}
 
-    if (terminal_row == VGA_HEIGHT) {
-        terminal_column = 0;
-        terminal_row = 0;
-    }
-
+    terminal_scroll();
     terminal_movecsr(terminal_column, terminal_row);
 }
 
@@ -141,5 +131,27 @@ void terminal_decprint(uint32_t num) {
     // Print in correct order (reverse of how we built it)
     while (--i >= 0) {
         terminal_putchar(buffer[i]);
+    }
+}
+
+void terminal_scroll(void) {
+    unsigned blank, temp;
+
+    /* A blank is defined as a space... we need to give it
+    *  backcolor too */
+    blank = 0x20 | (0x0F << 8);
+
+    /* Row 25 is the end, this means we need to scroll up */
+    if(terminal_row >= 25)
+    {
+        /* Move the current text chunk that makes up the screen
+        *  back in the buffer by a line */
+        temp = terminal_row - 25 + 1;
+        memcpy ((unsigned short *)0xB8000, (unsigned short *)0xB8000 + temp * 80, (25 - temp) * 80 * 2);
+
+        /* Finally, we set the chunk of memory that occupies
+        *  the last line of text to our 'blank' character */
+        memsetw ((unsigned short *)0xB8000 + (25 - temp) * 80, blank, 80);
+        terminal_row = 25 - 1;
     }
 }
