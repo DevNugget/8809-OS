@@ -8,6 +8,8 @@ A hobby operating system written in C.
 - [x] Keyboard driver
 - [x] Physical Memory Manager (PMM)
 - [x] Virtual Memory Manager (VMM) for paging
+- [x] Fatfs Filesystem (Read-Only)
+- [x] Running user program from file in usermode  
 
 ## Building and Running
 ### Prerequisites
