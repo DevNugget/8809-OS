@@ -26,6 +26,10 @@ void outportb (unsigned short _port, unsigned char _data)
     __asm__ __volatile__ ("outb %1, %0" : : "dN" (_port), "a" (_data));
 }
 
+void outportw(uint16_t port, uint16_t data) {
+    asm volatile ("outw %0, %1" : : "a"(data), "Nd"(port));
+}
+
 /*
 size_t strlen(const char *str) {
     size_t retval;

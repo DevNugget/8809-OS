@@ -20,11 +20,12 @@ struct idt_ptr {
 
 struct regs
 {
-    uint32_t gs, fs, es, ds;      /* pushed the segs last */
-    uint32_t edi, esi, ebp, esp, ebx, edx, ecx, eax;  /* pushed by 'pusha' */
-    uint32_t int_no, err_code;    /* our 'push byte #' and ecodes do this */
-    uint32_t eip, cs, eflags, useresp, ss;   /* pushed by the processor automatically */ 
+    unsigned int gs, fs, es, ds;      /* pushed the segs last */
+    unsigned int edi, esi, ebp, esp, ebx, edx, ecx, eax;  /* pushed by 'pusha' */
+    unsigned int int_no, err_code;    /* our 'push byte #' and ecodes do this */
+    unsigned int eip, cs, eflags, useresp, ss;   /* pushed by the processor automatically */ 
 };
+
 
 // Public functions
 void idt_init();          // Sets up the IDT
@@ -62,6 +63,7 @@ extern void isr28();
 extern void isr29();
 extern void isr30();
 extern void isr31();
+extern void isr128();
 
 void isrs_install();
 
@@ -83,6 +85,7 @@ extern void irq14();
 extern void irq15();
 
 void irq_install();
+void syscall_debug(struct regs *regs);
 void irq_handler(struct regs *r);
 
 void irq_install_handler(int irq, void (*handler)(struct regs *r));

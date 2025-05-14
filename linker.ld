@@ -52,7 +52,7 @@ SECTIONS
 	    . += 64K;  /* Reserve 64KB for bootstrap allocations */
 	    __boot_heap_end = .;
 	}
-	__kernel_end = .;  /* Marks end of kernel */
+	  /* Marks end of kernel */
 
 	__module_space_start = .;
 	.module_space : {
@@ -62,7 +62,9 @@ SECTIONS
 	    __module_space_end = .;
 	}
 	__module_space_end = .;
+	__kernel_end = .;
 
 	/* The compiler may produce other sections, by default it will put them in
 	   a segment with the same name. Simply add stuff here as needed. */
+
 }

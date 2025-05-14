@@ -1,97 +1,77 @@
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "keyboard_driver.h"
 #include "vga_driver.h"
 #include "util.h"
 
-static bool shift_down = false;
-static bool caps_lock = false;
-static bool ctrl_down = false;
-static bool alt_down = false;
+#define KEYBOARD_DATA_PORT 0x60
 
-// US QWERTY scancode table
-static const char scancode_table[] = {
-    0, 27, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\b',
-    '\t', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n',
-    0, 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`', 
-    0, '\\', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', 0,
-    '*', 0, ' ', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '7', '8', '9', '-',
-    '4', '5', '6', '+', '1', '2', '3', '0', '.'
+static const char scancode_to_ascii[128] = {
+    0,  27, '1','2','3','4','5','6','7','8','9','0','-','=', '\b',
+    '\t', 'q','w','e','r','t','y','u','i','o','p','[',']','\n',
+    0, 'a','s','d','f','g','h','j','k','l',';','\'','`',
+    0, '\\','z','x','c','v','b','n','m',',','.','/',
+    0, '*', 0, ' ', 0,
+    // Fill in more if needed
 };
 
-static const char shift_scancode_table[] = {
-    0, 27, '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', '\b',
-    '\t', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}', '\n',
-    0, 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '"', '~',
-    0, '|', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?', 0,
-    '*', 0, ' ', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '7', '8', '9', '-',
-    '4', '5', '6', '+', '1', '2', '3', '0', '.'
-};
+static volatile char current_key = 0;
+static volatile int waiting_for_key = 0;
 
-#define INPUT_BUFFER_SIZE 256
-static char input_buffer[INPUT_BUFFER_SIZE];
+#define KEYBOARD_BUFFER_SIZE 128
+static char key_buffer[KEYBOARD_BUFFER_SIZE];
+static volatile int buffer_head = 0;
+static volatile int buffer_tail = 0;
 
-static uint32_t buffer_start = 0;
-static uint32_t buffer_end = 0;
-
-static void keyboard_buffer_push(char c) {
-    if ((buffer_end + 1) % INPUT_BUFFER_SIZE == buffer_start) return;  // Buffer full
-    input_buffer[buffer_end] = c;
-    buffer_end = (buffer_end + 1) % INPUT_BUFFER_SIZE;
+static int buffer_is_empty() {
+    return buffer_head == buffer_tail;
 }
 
-char keyboard_getchar() {
-    while (buffer_start == buffer_end) { asm volatile("hlt"); }  // Wait for input
-    char c = input_buffer[buffer_start];
-    buffer_start = (buffer_start + 1) % INPUT_BUFFER_SIZE;
+static int buffer_is_full() {
+    return ((buffer_head + 1) % KEYBOARD_BUFFER_SIZE) == buffer_tail;
+}
+
+static void buffer_put(char c) {
+    if (!buffer_is_full()) {
+        key_buffer[buffer_head] = c;
+        buffer_head = (buffer_head + 1) % KEYBOARD_BUFFER_SIZE;
+    }
+}
+
+static char buffer_get() {
+    if (buffer_is_empty()) return 0;
+    char c = key_buffer[buffer_tail];
+    buffer_tail = (buffer_tail + 1) % KEYBOARD_BUFFER_SIZE;
     return c;
 }
 
-void keyboard_handler(struct regs *r) {
-    uint8_t scancode = inportb(0x60);
-    
-    // Handle key release and modifier keys
-    switch (scancode) {
-        case 0x2A: shift_down = true; break;     // Left Shift press
-        case 0xAA: shift_down = false; break;    // Left Shift release
-        case 0x3A: caps_lock = !caps_lock; break; // Caps Lock toggle
-        case 0x1D: ctrl_down = true; break;      // Ctrl press
-        case 0x9D: ctrl_down = false; break;     // Ctrl release
-        case 0x38: alt_down = true; break;       // Alt press
-        case 0xB8: alt_down = false; break;      // Alt release
-    }
+static void keyboard_callback(struct regs *regs) {
+    uint8_t scancode = inportb(KEYBOARD_DATA_PORT);
 
-    // Ignore key releases (except modifiers above)
-    if (scancode & 0x80) return;
-
-    // Translate scancode to ASCII
-    char c = 0;
-    if (shift_down || caps_lock) {
-        c = shift_scancode_table[scancode];
-    } else {
-        c = scancode_table[scancode];
-    }
-
-    // Handle special keys
-    if (ctrl_down && c == 'c') {
-        terminal_writestring("^C");
-        // TODO: Send SIGINT to shell
+    if (scancode & 0x80) {
+        // Key release, ignore
         return;
     }
 
-    if (c == '\b') {
-        if (buffer_start != buffer_end) {
-            buffer_end = (buffer_end - 1) % INPUT_BUFFER_SIZE;
-        }
+    char c = scancode_to_ascii[scancode];
+    if (c) {
+        buffer_put(c);
     }
 
-    if (c) {
-        keyboard_buffer_push(c);  // Store for shell
-        terminal_putchar(c);      // Echo to screen
-    }
+    (void)regs;
 }
 
 void keyboard_init() {
-    irq_install_handler(1, keyboard_handler);  // Register IRQ1 handler
-    terminal_writestring("Keyboard driver initialized\n");
+    irq_install_handler(1, keyboard_callback);
+}
+
+char keyboard_getchar() {
+    // Wait for a character to appear in the buffer
+    while (buffer_is_empty()) {
+        // Optionally add sleep/pause to reduce CPU usage
+        //asm volatile ("hlt");
+    }
+
+    return buffer_get();
 }

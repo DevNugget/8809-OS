@@ -1,16 +1,26 @@
 ; Declare constants for the multiboot header.
 MBALIGN  equ  1 << 0
-MEMINFO  equ  1 << 1            
-MBFLAGS  equ  MBALIGN | MEMINFO 
+MEMINFO  equ  1 << 1
+MBFLAGS  equ  0x00000007
 MAGIC    equ  0x1BADB002
-ALIGN_MODULES   equ 0x00000001
-CHECKSUM equ -(MAGIC + ALIGN_MODULES)
+CHECKSUM equ -(MAGIC + MBFLAGS)
 
 section .multiboot
 align 4
 	dd MAGIC
-	dd ALIGN_MODULES
+	dd MBFLAGS
 	dd CHECKSUM
+
+	dd 0
+	dd 0
+	dd 0
+	dd 0
+	dd 0
+
+    dd   0       ; Linear graphics please?
+    dd   640       ; Preferred width
+    dd   480       ; Preferred height
+    dd   16      ; Preferred pixel depth
 
 section .bss
 align 16
@@ -95,6 +105,50 @@ ISR_NOERRCODE 28  ; Hypervisor Injection Exception
 ISR_NOERRCODE 29  ; VMM Communication Exception
 ISR_NOERRCODE 30  ; Security Exception
 ISR_NOERRCODE 31  ; Reserved
+global isr128
+isr128:
+    cli
+    push byte 0     ; Error code (none)
+    push  0x80  ; Interrupt number
+    jmp syscall_common_stub
+
+extern syscall_handler
+syscall_common_stub:
+pushad          ; Push all general purpose registers (EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI)
+
+    push ds
+    push es
+    push fs
+    push gs
+
+    ; Set kernel data segment registers
+    mov ax, 0x10  ; Kernel data segment
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+
+    ; Pass pointer to registers to C function
+    mov eax, esp
+    push eax
+
+    ; Call the C handler
+    call syscall_handler
+
+    ; Cleanup and restore state
+    add esp, 4      ; Pop argument to syscall_debug
+
+    pop gs
+    pop fs
+    pop es
+    pop ds
+
+    popad           ; Restore all registers
+
+    add esp, 8      ; Remove error code and interrupt number
+
+    sti             ; Re-enable interrupts
+    iret            ; Return to user mode
 
 extern isr_handler
 
@@ -176,6 +230,35 @@ irq_common_stub:
     popa
     add esp, 8
     iret
+
+global context_switch
+context_switch:
+    ; Save current context (if any)
+    mov eax, [esp+4]   ; Address to store old ESP
+
+    ; Save registers
+    pushf              ; Save EFLAGS
+    pusha              ; Save general registers
+    push ds
+    push es
+    push fs
+    push gs
+
+    ; Save old ESP
+    mov [eax], esp
+
+    ; Load new context
+    mov esp, [esp+8+36]  ; +36 accounts for all the pushes we just did
+
+    ; Restore registers
+    pop gs
+    pop fs
+    pop es
+    pop ds
+    popa                ; Restore general registers
+    popf                ; Restore EFLAGS
+
+    ret
 
 global _start:function (_start.end - _start)
 _start:

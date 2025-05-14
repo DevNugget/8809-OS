@@ -18,7 +18,11 @@
 #include "pmm.h"
 #include "vga_driver.h"
 
+__attribute__((aligned(4096))) static uint32_t page_directory[1024];
+__attribute__((aligned(4096))) static uint32_t first_page_table[1024];
+
 void vmm_init();
 int vmm_map_page(uint32_t virt_addr, uint32_t phys_addr, uint32_t flags);
+uint32_t vmm_create_user_directory();
 
 #endif

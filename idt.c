@@ -3,6 +3,7 @@
 #include "idt.h"
 #include "vga_driver.h"
 #include "util.h"
+#include "task.h"
 
 struct idt_entry idt[256];
 struct idt_ptr idt_ptr;
@@ -54,6 +55,7 @@ void isrs_install()
     idt_set_gate(29, (uint32_t)isr29, 0x08, 0x8E);
     idt_set_gate(30, (uint32_t)isr30, 0x08, 0x8E);
     idt_set_gate(31, (uint32_t)isr31, 0x08, 0x8E);
+    idt_set_gate(0x80, (uint32_t)isr128, 0x08, 0xEE); 
 }
 
 void idt_init() {
@@ -167,7 +169,7 @@ void irq_remap(void) {
 void irq_install() {
     irq_remap();
 
-    idt_set_gate(32, (unsigned)irq0,  0x08, 0x8E);  // IRQ0  (Timer)
+    idt_set_gate(32, (unsigned)irq0,  0x08, 0x8E | 0x60);  // IRQ0  (Timer)
     idt_set_gate(33, (unsigned)irq1,  0x08, 0x8E);  // IRQ1  (Keyboard)
     idt_set_gate(34, (unsigned)irq2,  0x08, 0x8E);  // IRQ2  (Cascade)
     idt_set_gate(35, (unsigned)irq3,  0x08, 0x8E);  // IRQ3  (COM2)

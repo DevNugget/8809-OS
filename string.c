@@ -57,3 +57,10 @@ char* strchr(const char* s, int c) {
     }
     return NULL;
 }
+
+int strncmp(const char* s1, const char* s2, unsigned int n) {
+    while (n && *s1 && (*s1 == *s2)) {
+        ++s1; ++s2; --n;
+    }
+    return n == 0 ? 0 : *(unsigned char*)s1 - *(unsigned char*)s2;
+}

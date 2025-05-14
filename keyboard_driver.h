@@ -5,7 +5,7 @@
 #include "idt.h"
 
 void keyboard_init();
-void keyboard_handler(struct regs *r);
+static void keyboard_callback(struct regs *r);
 char keyboard_getchar();  // Blocking read (for shell)
 
 // Scancode translation states

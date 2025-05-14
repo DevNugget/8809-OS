@@ -69,10 +69,10 @@ void pmm_init(multiboot_info_t* mbd, unsigned int magic) {
     // Allocate bitmap using bootstrap heap
     frame_bitmap = boot_alloc(bitmap_size);
     pmm_memset(frame_bitmap, 0xFF, bitmap_size);  // Mark all as "used"
-    
+
 	int i;
     for(i = 0; i < mbd->mmap_length; i += sizeof(multiboot_memory_map_t)) {
-        multiboot_memory_map_t* mmmt = 
+        multiboot_memory_map_t* mmmt =
             (multiboot_memory_map_t*) (mbd->mmap_addr + i);
 
         terminal_writestring("  Base: ");
@@ -88,10 +88,10 @@ void pmm_init(multiboot_info_t* mbd, unsigned int magic) {
         if(mmmt->type == MULTIBOOT_MEMORY_AVAILABLE) {
 			uint32_t start_frame = (mmmt->addr + 0xFFF) / 0x1000;
 			uint32_t end_frame = (mmmt->addr + mmmt->len) / 0x1000;
-	        
+
 	        // Ensure we don't go beyond bitmap bounds
 	        if (end_frame > total_frames) end_frame = total_frames;
-	        
+
 	        for (uint32_t i = start_frame; i < end_frame; i++) {
 	            frame_bitmap[INDEX_FROM_BIT(i)] &= ~(1 << OFFSET_FROM_BIT(i));
 	        }
@@ -124,7 +124,7 @@ uint32_t pmm_alloc_frame() {
 void pmm_free_frame(uint32_t frame_addr) {
     uint32_t frame = frame_addr / 0x1000;
     if (frame >= total_frames) pmm_panic("Invalid frame free");
-    
+
     frame_bitmap[INDEX_FROM_BIT(frame)] &= ~(1 << OFFSET_FROM_BIT(frame));
     used_frames--;
 }
