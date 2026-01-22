@@ -4,7 +4,7 @@ uint32_t load_elf(const char* path) {
     FIL file;
     FRESULT res = f_open(&file, path, FA_READ);
     if (res != FR_OK) {
-        terminal_writestring("Failed to open ELF file\n");
+        console_write("Failed to open ELF file\n");
         return 0;
     }
 
@@ -13,7 +13,7 @@ uint32_t load_elf(const char* path) {
     UINT bytes_read;
     res = f_read(&file, &elf_hdr, sizeof(Elf32_Ehdr), &bytes_read);
     if (res != FR_OK || bytes_read != sizeof(Elf32_Ehdr)) {
-        terminal_writestring("Failed to read ELF header\n");
+        console_write("Failed to read ELF header\n");
         f_close(&file);
         return 0;
     }
@@ -21,7 +21,7 @@ uint32_t load_elf(const char* path) {
     // Check ELF magic
     if (elf_hdr.e_ident[0] != 0x7F || elf_hdr.e_ident[1] != 'E' ||
         elf_hdr.e_ident[2] != 'L' || elf_hdr.e_ident[3] != 'F') {
-        terminal_writestring("Invalid ELF magic\n");
+        console_write("Invalid ELF magic\n");
         f_close(&file);
         return 0;
     }
@@ -32,7 +32,7 @@ uint32_t load_elf(const char* path) {
         f_lseek(&file, elf_hdr.e_phoff + i * sizeof(Elf32_Phdr));
         res = f_read(&file, &phdr, sizeof(Elf32_Phdr), &bytes_read);
         if (res != FR_OK || bytes_read != sizeof(Elf32_Phdr)) {
-            terminal_writestring("Failed to read program header\n");
+            console_write("Failed to read program header\n");
             f_close(&file);
             return 0;
         }
@@ -64,7 +64,7 @@ int unload_elf(const char* path) {
     FIL file;
     FRESULT res = f_open(&file, path, FA_READ);
     if (res != FR_OK) {
-        terminal_writestring("Failed to open ELF file\n");
+        console_write("Failed to open ELF file\n");
         return -1;
     }
 
@@ -72,7 +72,7 @@ int unload_elf(const char* path) {
     UINT bytes_read;
     res = f_read(&file, &elf_hdr, sizeof(Elf32_Ehdr), &bytes_read);
     if (res != FR_OK || bytes_read != sizeof(Elf32_Ehdr)) {
-        terminal_writestring("Failed to read ELF header\n");
+        console_write("Failed to read ELF header\n");
         f_close(&file);
         return -1;
     }
@@ -82,7 +82,7 @@ int unload_elf(const char* path) {
         f_lseek(&file, elf_hdr.e_phoff + i * sizeof(Elf32_Phdr));
         res = f_read(&file, &phdr, sizeof(Elf32_Phdr), &bytes_read);
         if (res != FR_OK || bytes_read != sizeof(Elf32_Phdr)) {
-            terminal_writestring("Failed to read program header\n");
+            console_write("Failed to read program header\n");
             f_close(&file);
             return -1;
         }
@@ -108,9 +108,9 @@ int unload_elf(const char* path) {
             page_table[page_table_index] = 0;
             asm volatile("invlpg (%0)" ::"r" (va) : "memory");
 
-            terminal_writestring("Unmapped ");
-            terminal_hexprint(va);
-            terminal_writestring("\n");
+            console_write("Unmapped ");
+            //terminal_hexprint(va);
+            console_write("\n");
         }
     }
 

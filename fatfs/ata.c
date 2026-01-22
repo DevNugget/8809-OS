@@ -18,7 +18,7 @@ static void ata_wait() {
     while (!(status & ATA_SR_DRQ) && timeout--) {
         status = inportb(ATA_PRIMARY_IO + ATA_REG_STATUS);
         if (status & ATA_SR_ERR) {
-            gterminal_writestring("ATA error during wait!\n");
+            terminal_writestring("ATA error during wait!\n");
             break;
         }
     }

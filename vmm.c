@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include "vmm.h"
+#include "kernel/console.h"
 #include "pmm.h"
-#include "vga_driver.h"
 #include "idt.h"
 #include "string.h"
 
@@ -28,15 +28,15 @@ void vmm_enable_paging() {
 int vmm_map_page(uint32_t virt_addr, uint32_t phys_addr, uint32_t flags) {
     // Validate addresses
     if (virt_addr < 0x1000 && virt_addr != 0) {  // Allow NULL mapping for special cases
-        terminal_writestring("VMM_ERR_INVALID_VIRT_ADDR\n");
+        console_write("VMM_ERR_INVALID_VIRT_ADDR\n");
         return VMM_ERR_INVALID_ADDR;
     }
 
     // Allow physical addresses where GRUB loads modules
     if (phys_addr < 0x1000 && !(phys_addr >= 0x100000 && phys_addr < 0x200000)) {
-        terminal_writestring("VMM_ERR_INVALID_PHYS_ADDR at ");
-        terminal_hexprint(phys_addr);
-        terminal_writestring("\n");
+        console_write("VMM_ERR_INVALID_PHYS_ADDR at ");
+        //terminal_hexprint(phys_addr);
+        console_write("\n");
         return VMM_ERR_INVALID_ADDR;
     }
 
@@ -48,7 +48,7 @@ int vmm_map_page(uint32_t virt_addr, uint32_t phys_addr, uint32_t flags) {
         uint32_t* page_table = (uint32_t*)(page_directory[page_dir_index] & ~0xFFF);
         // Check if page is already mapped
         if (page_table[page_table_index] & PAGE_PRESENT) {
-        	//terminal_writestring("ERROR DOUBLE MAP\n");
+        	//console_write("ERROR DOUBLE MAP\n");
             return VMM_ERR_DOUBLE_MAP;
         }
     } else {
@@ -66,11 +66,11 @@ int vmm_map_page(uint32_t virt_addr, uint32_t phys_addr, uint32_t flags) {
     page_table[page_table_index] = (phys_addr & ~0xFFF) | (flags & (PAGE_PRESENT|PAGE_RW|PAGE_USER|PAGE_EXECUTABLE));
 
     asm volatile("invlpg (%0)" ::"r" (virt_addr) : "memory");
-    //terminal_writestring("Mapped ");
+    //console_write("Mapped ");
     //terminal_hexprint(virt_addr);
-    //terminal_writestring(" to ");
+    //console_write(" to ");
     //terminal_hexprint(phys_addr);
-    //terminal_writestring("\n");
+    //console_write("\n");
     return VMM_SUCCESS;
 }
 
@@ -85,19 +85,19 @@ void page_fault_handler(struct regs *r) {
     uint32_t reserved = r->err_code & 0x8;   // Overwritten CPU-reserved bits
     uint32_t id = r->err_code & 0x10;        // Instruction fetch?
 
-    terminal_setcolor(VGA_COLOR_LIGHT_RED);
-    terminal_writestring("\nPage Fault at ");
-    terminal_hexprint(faulting_address);
-    terminal_writestring(" [");
+    //terminal_setcolor(VGA_COLOR_LIGHT_RED);
+    console_write("\nPage Fault at ");
+    //terminal_hexprint(faulting_address);
+    console_write(" [");
 
-    if (present) terminal_writestring("(not present)");
-    if (write) terminal_writestring("(write)");
-    if (user) terminal_writestring("(user-mode)");
-    if (reserved) terminal_writestring("(reserved)");
-    if (id) terminal_writestring("(instruction-fetch)");
+    if (present) console_write("(not present)");
+    if (write) console_write("(write)");
+    if (user) console_write("(user-mode)");
+    if (reserved) console_write("(reserved)");
+    if (id) console_write("(instruction-fetch)");
 
-    terminal_writestring("]\n");
-    terminal_setcolor(VGA_COLOR_WHITE);
+    console_write("]\n");
+    //terminal_setcolor(VGA_COLOR_WHITE);
 
     // For now just hang, but later you can implement:
     // - Demand paging
@@ -115,7 +115,7 @@ void vmm_init() {
 
     vmm_identity_map_first_4mb();
     vmm_enable_paging();
-    terminal_writestring("Paging enabled.\n");
+    console_write("Paging enabled.\n");
 }
 
 uint32_t vmm_create_user_directory() {

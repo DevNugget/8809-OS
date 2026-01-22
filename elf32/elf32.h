@@ -5,7 +5,7 @@
 #include "../pmm.h"
 #include "../vmm.h"
 #include "../string.h"
-#include "../vga_driver.h"
+#include "../kernel/console.h"
 #include "../fatfs/ff.h"
 
 typedef struct {

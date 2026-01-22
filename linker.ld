@@ -49,7 +49,7 @@ SECTIONS
 
 	.boot_heap : {
 	    __boot_heap_start = .;
-	    . += 64K;  /* Reserve 64KB for bootstrap allocations */
+	    . += 2M;  /* Reserve 64KB for bootstrap allocations */
 	    __boot_heap_end = .;
 	}
 	  /* Marks end of kernel */

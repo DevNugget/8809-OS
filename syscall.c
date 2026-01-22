@@ -1,9 +1,9 @@
 #include "syscall.h"
+#include "kernel/console.h"
 #include "keyboard_driver.h"
 #include "task.h"
 #include "elf32/elf32.h"
 #include "fatfs/ff.h"
-#include "vga_driver.h"
 #include <stdint.h>
 #include "string.h"
 
@@ -12,8 +12,6 @@ struct dirent {
     char name[256];
     uint8_t is_dir;
 };
-
-theme_t current_theme;
 
 int syscall_read_file(const char *path, char *buf, size_t bufsize) {
     FIL file;
@@ -40,11 +38,58 @@ uint32_t syscall_handler(struct regs *regs) {
             char* user_str = (char*)regs->ebx;
             uint32_t len = regs->ecx;
 
-            gterminal_writestring(user_str);
+            console_write(user_str);
             //terminal_write_screen_size();
 
             break;
         }
+
+        case SYSCALL_CLEARLINEFROM: {
+            int col = (int)regs->ebx; // starting column
+
+            console_clear_line_from(col);
+            break;
+        }
+
+        case SYSCALL_MOVECURSOR: {
+            int row = (int)regs->ebx;
+            int col = (int)regs->ecx;
+
+            console_move_cursor(row, col);
+            break;
+        }
+
+        case SYSCALL_DRAWPIXEL: {
+            int x = (int)regs->ebx;
+            int y = (int)regs->ecx;
+            uint32_t color = (uint32_t)regs->edx;
+
+            // bounds check
+            if (x < 0 || x >= 640 || y < 0 || y >= 480) {
+                // Optionally log error, ignore, or return error code
+                break;
+            }
+
+            console_putpixel(x, y, color);
+            break;
+        }
+
+        case SYSCALL_DRAWIMAGE: {
+            int x = regs->ebx;
+            int y = regs->ecx;
+            int width = regs->edx;
+            int height = regs->esi;
+            unsigned int* pixels = (unsigned int*)regs->edi;
+
+            for (int row = 0; row < height; row++) {
+                for (int col = 0; col < width; col++) {
+                    unsigned int color = pixels[row * width + col];
+                    console_putpixel(x + col, y + row, color);
+                }
+            }
+            break;
+        }
+
 
         case SYSCALL_READCHAR: {
             char c = keyboard_getchar();
@@ -58,7 +103,7 @@ uint32_t syscall_handler(struct regs *regs) {
             int32_t user_int = (int32_t)regs->ebx;
             uint32_t len = regs->ecx;
 
-            terminal_decprint(user_int);
+            console_decprint(user_int);
 
             break;
         }
@@ -67,7 +112,7 @@ uint32_t syscall_handler(struct regs *regs) {
             uint32_t fg = regs-> ebx;
             uint32_t bg = regs-> ecx;
 
-            gterminal_set_colors(fg, bg);
+            console_set_colors(fg, bg);
             break;
         }
 
@@ -178,26 +223,26 @@ uint32_t syscall_handler(struct regs *regs) {
         }
 
         case SYSCALL_TERMCLEAR: {
-            gterminal_clear();
+            console_clear();
             break;
         }
 
         case SYSCALL_TERMFONT: {
             const char* filename = (const char*)regs->ebx;
 
-            int err = load_psf1_font(filename);
+            int err = console_changefont(filename);
             regs->eax = err;
 
             break;
         }
 
         case SYSCALL_TERMGETFG: {
-            regs->eax = gterminal_getfg();
+            regs->eax = console_get_fg();
             break;
         }
 
         case SYSCALL_TERMGETBG: {
-            regs->eax = gterminal_getbg();
+            regs->eax = console_get_bg();
             break;
         }
 
@@ -206,9 +251,8 @@ uint32_t syscall_handler(struct regs *regs) {
             const char* theme_path = (const char*)regs->ebx;
 
             // Load the theme from the file and apply it
-            int result = load_theme(theme_path, &current_theme);
-            gterminal_set_colors(current_theme.white, current_theme.black);
-            gterminal_clear();
+            int result = console_changetheme(theme_path);
+            console_clear();
 
             // Return the result to user-space (0 for success, non-zero for failure)
             regs->eax = result;
@@ -219,7 +263,7 @@ uint32_t syscall_handler(struct regs *regs) {
         case SYSCALL_TERMGETTHEME: {
             theme_t* user_theme = (theme_t*)regs->ebx;
 
-            memcpy(user_theme, &current_theme, sizeof(theme_t));
+            memcpy(user_theme, console_gettheme(), sizeof(theme_t));
 
             break;
         }
@@ -233,11 +277,12 @@ uint32_t syscall_handler(struct regs *regs) {
         }
 
         default: {
-            gterminal_writestring("Unknown syscall: ");
-            terminal_hexprint(regs->eax);
-            terminal_putchar('\n');
+            console_write("Unknown syscall: ");
+            console_decprint(regs->eax);
+            console_putchar('\n');
             //return_to_usermode(regs->eip);
             return 0;
         }
     }
+    return 0;
 }

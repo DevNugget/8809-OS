@@ -2,10 +2,10 @@
 #define SYSCALL_H
 
 #include <stdint.h>
-#include "vga_driver.h"
 #include "keyboard_driver.h"
 #include "idt.h"
 #include "util.h"
+#include "kernel/console.h"
 
 #define SYSCALL_WRITE 1
 #define SYSCALL_WRITEINT 2
@@ -24,9 +24,11 @@
 #define SYSCALL_TERMLDTHEME 15
 #define SYSCALL_TERMGETTHEME 16
 #define SYSCALL_READFILE 17
+#define SYSCALL_DRAWPIXEL 18
+#define SYSCALL_DRAWIMAGE 19
+#define SYSCALL_MOVECURSOR 20
+#define SYSCALL_CLEARLINEFROM 21
 
 uint32_t syscall_handler(struct regs *regs);
-
-theme_t current_theme;
 
 #endif

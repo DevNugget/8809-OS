@@ -79,28 +79,6 @@ typedef enum VGAColor {
 #define COLOR_LIGHT_CYAN  0x8AC9F2
 #define COLOR_LIGHT_WHITE 0xFFFFFF
 
-typedef struct {
-    uint32_t black;
-    uint32_t red;
-    uint32_t green;
-    uint32_t yellow;
-    uint32_t blue;
-    uint32_t magenta;
-    uint32_t cyan;
-    uint32_t white;
-    uint32_t gray;
-
-    uint32_t light_black;
-    uint32_t light_red;
-    uint32_t light_green;
-    uint32_t light_yellow;
-    uint32_t light_blue;
-    uint32_t light_magenta;
-    uint32_t light_cyan;
-    uint32_t light_white;
-    uint32_t light_gray;
-} theme_t;
-
 static inline uint16_t vga_entry_color(VGAColor fg, VGAColor bg) {
     return (bg << 4) | (fg & 0x0F);
 }
@@ -125,29 +103,5 @@ void terminal_scroll(void);
 void terminal_clear();
 void switch_to_80x50_mode();
 void terminal_write_screen_size();
-void gterminal_init(multiboot_info_t* mbd);
-void draw_pixel(int x, int y, uint32_t color);
-void draw_example();
-
-typedef struct {
-    uint8_t magic[2];      // 0x36 0x04
-    uint8_t mode;          // bit 0: 512 glyphs if set, otherwise 256
-    uint8_t charsize;      // bytes per glyph
-} __attribute__((packed)) psf1_header_t;
-
-typedef struct {
-    uint8_t* glyph_buffer;
-    uint32_t glyph_count;
-    uint32_t glyph_size;
-} psf1_font_t;
-
-int load_psf1_font(const char* path);
-void draw_char_psf(int x, int y, char c, uint32_t color);
-void gterminal_writestring(const char* str);
-void gterminal_set_colors(uint32_t fg, uint32_t bg);
-void gterminal_clear();
-uint32_t gterminal_getfg();
-uint32_t gterminal_getbg();
-int load_theme(const char* path, theme_t* theme);
 
 #endif

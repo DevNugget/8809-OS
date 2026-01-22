@@ -1,4 +1,3 @@
-#include "vga_driver.h"
 #include "gdt.h"
 #include "tss.h"
 #include "idt.h"
@@ -10,6 +9,7 @@
 #include "multiboot.h"
 #include "fatfs/ff.h"
 #include "elf32/elf32.h"
+#include "ui/ui.h"
 #include <stdint.h>
 
 #define KHEAP_START 0xC1000000
@@ -24,7 +24,8 @@ void map_user_stack();
 void mount_filesystem();
 
 void kernel_main(multiboot_info_t* mbd, unsigned int magic) {
-    gterminal_init(mbd);
+
+   // gterminal_init(mbd);
     gdt_init();
     idt_init();
 
@@ -46,7 +47,10 @@ void kernel_main(multiboot_info_t* mbd, unsigned int magic) {
     heap_init(map_heap_pages(), KHEAP_INITIAL_SIZE);
 
     mount_filesystem();
-    load_psf1_font("fonts/aply16.psf"); // Load default font
+    
+    //load_psf1_font("fonts/aply16.psf", &ui.font); // Load default font
+    //gterminal_init(&ui.term, &ui.fb, &ui.font);
+    ui_init(mbd);
     uint32_t elf_entry = load_elf("bin/init.elf"); // Load the system init program
     map_user_stack();
 
@@ -99,9 +103,18 @@ void* map_heap_pages() {
  * Maps two pages near the top of the user address space to serve as the
  * initial user-mode stack. The stack is mapped with user-mode and read/write permissions.
  */
+//void map_user_stack() {
+//    vmm_map_page(0xBFFFF000 - 4096, pmm_alloc_frame(), PAGE_PRESENT | PAGE_USER | PAGE_RW);
+//    vmm_map_page(0xBFFFF000, pmm_alloc_frame(), PAGE_PRESENT | PAGE_USER | PAGE_RW);
+//}
+#define USER_STACK_TOP 0xBFFFF000
+#define USER_STACK_SIZE 0x200000 // 1 mb
+
 void map_user_stack() {
-    vmm_map_page(0xBFFFF000 - 4096, pmm_alloc_frame(), PAGE_PRESENT | PAGE_USER | PAGE_RW);
-    vmm_map_page(0xBFFFF000, pmm_alloc_frame(), PAGE_PRESENT | PAGE_USER | PAGE_RW);
+    for (int i = 0; i < USER_STACK_SIZE / 4096; i++) {
+        vmm_map_page(USER_STACK_TOP - i * 4096, pmm_alloc_frame(),
+                     PAGE_PRESENT | PAGE_USER | PAGE_RW);
+    }
 }
 
 /**
@@ -113,7 +126,7 @@ void map_user_stack() {
 void mount_filesystem() {
     FRESULT res = f_mount(&fat_fs, "", 1); // 1 = mount now
     if (res != FR_OK) {
-        terminal_writestring("Failed to mount filesystem\n");
+        console_write("Failed to mount filesystem\n");
         return;
     }
 }

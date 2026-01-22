@@ -15,6 +15,10 @@
 #define SYSCALL_TERMLDTHEME 15
 #define SYSCALL_TERMGETTHEME 16
 #define SYSCALL_READFILE 17
+#define SYSCALL_DRAWPIXEL 18
+#define SYSCALL_DRAWIMAGE 19
+#define SYSCALL_MOVECURSOR 20
+#define SYSCALL_CLEARLINEFROM 21
 
 #include <stdint.h>
 #include <stddef.h>
@@ -24,6 +28,45 @@ struct dirent {
     char name[256];
     uint8_t is_dir;
 };
+
+void syscall_clear_line_from(int col) {
+    asm volatile (
+        "int $0x80"
+        :
+        : "a"(SYSCALL_CLEARLINEFROM), "b"(col)
+        : "memory"
+    );
+}
+
+void syscall_movecursor(int row, int col) {
+    asm volatile (
+        "int $0x80"
+        :
+        : "a"(SYSCALL_MOVECURSOR), "b"(row), "c"(col)
+        : "memory"
+    );
+}
+
+static inline void syscall_drawpixel(uint32_t x, uint32_t y, uint32_t color) {
+    asm volatile(
+        "int $0x80"
+        :
+        : "a"(SYSCALL_DRAWPIXEL), "b"(x), "c"(y), "d"(color)
+    );
+}
+
+static inline void syscall_drawimage(int x, int y, unsigned int width, unsigned int height, unsigned int* pixels) {
+    asm volatile(
+        "int $0x80"
+        :
+        : "a"(SYSCALL_DRAWIMAGE),
+          "b"(x),
+          "c"(y),
+          "d"(width),
+          "S"(height),
+          "D"(pixels)
+    );
+}
 
 static inline int syscall_write(const char* str) {
     int ret;

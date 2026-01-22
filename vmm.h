@@ -16,7 +16,7 @@
 
 #include <stdint.h>
 #include "pmm.h"
-#include "vga_driver.h"
+#include "kernel/console.h"
 
 __attribute__((aligned(4096))) static uint32_t page_directory[1024];
 __attribute__((aligned(4096))) static uint32_t first_page_table[1024];

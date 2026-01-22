@@ -31,7 +31,7 @@ static void* boot_alloc(size_t size) {
 }
 
 static void pmm_panic(const char* msg) {
-    terminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK));
+    //gterminal_setcolor(vga_entry_color(VGA_COLOR_LIGHT_RED, VGA_COLOR_BLACK));
     terminal_writestring("PMM PANIC: ");
     terminal_writestring(msg);
     terminal_writestring("\n");
@@ -98,8 +98,8 @@ void pmm_init(multiboot_info_t* mbd, unsigned int magic) {
         }
     }
 
-	extern _start;
-	extern __kernel_end;
+	extern int _start;
+	extern int __kernel_end;
 
     uint32_t kernel_start = _start;
     uint32_t kernel_end = __kernel_end;
